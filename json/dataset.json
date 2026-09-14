@@ -1,0 +1,18 @@
+[
+  {
+    "url": "https://raw.githubusercontent.com/DasStudioINC/spider_diffusion-dataset/main/images/spider/spe1.png",
+    "prompt": "aura spider-man with red and blue light coming off him and dark black background."
+  },
+  {
+    "url": "https://raw.githubusercontent.com/DasStudioINC/spider_diffusion-dataset/main/images/spider/spe2.png",
+    "prompt": "Spider-man with yellow shirt and headphones in new york."
+  },
+   {
+    "url": "https://raw.githubusercontent.com/DasStudioINC/spider_diffusion-dataset/main/images/spider/spe3.png",
+    "prompt": "Spider-man with a red background doing its hero swing pose with a web being held."
+  },
+   {
+    "url": "https://raw.githubusercontent.com/DasStudioINC/spider_diffusion-dataset/main/images/spider/spe4.png",
+    "prompt": "Spider-man with a blue gradient background close up shot with a web shooting right at us and his fingers aimed at us."
+  }
+]
