@@ -1,5 +1,6 @@
 import argparse
 import os
+import shutil
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
@@ -23,23 +24,25 @@ def train_model():
     text_encoder.eval()
 
     # 2. Setup GitHub Online Streaming Dataset
-    # PASTE YOUR RAW GITHUB URL FOR dataset.json HERE:
     manifest_file = "https://raw.githubusercontent.com/DasStudioINC/spider_diffusion-dataset/main/json/dataset.json"
 
+    # Enforce strict 64x64 sizing and center cropping to avoid rounding boundary bugs
     transform = transforms.Compose([
-        transforms.Resize((64, 64)), # Matches 64x64 U-Net architecture
+        transforms.Resize((64, 64)),
+        transforms.CenterCrop(64),
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)) # Map to [-1, 1]
     ])
 
     train_dataset = GitHubStreamDataset(manifest_path=manifest_file, transform=transform)
-    dataloader = DataLoader(train_dataset, batch_size=2) # Batch size of 2 since you have 4 images
+    dataloader = DataLoader(train_dataset, batch_size=2)
 
     timesteps = 1000
     betas, alphas, alphas_cumprod = get_diffusion_schedule(timesteps)
     alphas_cumprod = alphas_cumprod.to(device)
 
-    model = SimpleConditionalUNet(in_channels=3, base_dims=32, time_dim=128).to(device)
+    # Upgraded base_dims to 64 for improved feature capacity
+    model = SimpleConditionalUNet(in_channels=3, base_dims=64, time_dim=128).to(device)
 
     # --- CHECKPOINT RESUMING LOGIC ---
     checkpoint_path = "diffusion_checkpoint.pth"
@@ -65,7 +68,6 @@ def train_model():
             x_zero = batch_images.to(device)
             current_batch_size = x_zero.shape[0]
 
-            # Encode the specific text prompts pulled live for this batch from GitHub
             with torch.no_grad():
                 text_inputs = tokenizer(list(batch_prompts), padding=True, return_tensors="pt").to(device)
                 batch_text_embeds = text_encoder(**text_inputs).pooler_output # Shape: [batch_size, 512]
@@ -92,6 +94,17 @@ def train_model():
     # Save final model checkpoint
     torch.save(model.state_dict(), checkpoint_path)
     print(f"\nTraining complete! Final checkpoint saved to '{checkpoint_path}'.")
+
+    # --- AUTO-CLEANUP CACHED IMAGES ---
+    cache_dir = "./cache_images"
+    if os.path.exists(cache_dir):
+        print(f"Cleaning up local training cache: {cache_dir}...")
+        try:
+            shutil.rmtree(cache_dir)
+            print("Local cache cleared successfully to save disk space.")
+        except Exception as e:
+            print(f"Failed to clear cache directory: {e}")
+    # ----------------------------------
 
 if __name__ == "__main__":
     train_model()
