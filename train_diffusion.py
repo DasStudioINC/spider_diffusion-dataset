@@ -5,10 +5,11 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from transformers import CLIPTokenizer, CLIPTextModel
-from diffusion_core import SimpleConditionalUNet, get_diffusion_schedule, GitHubStreamDataset
+from diffusion_core import SimpleConditionalUNet, get_diffusion_schedule
+from git_hub_imp.GitHubStreamDataset import GitHubStreamDataset
 
 def train_model():
-    parser = argparse.ArgumentParser(description="Train the text-conditioned diffusion model using GitHub-streamed data.")
+    parser = argparse.ArgumentParser(description="Train text-conditioned diffusion model via GitHub streaming dataset.")
     parser.add_argument("--epochs", type=int, default=100, help="Number of training epochs.")
     args = parser.parse_args()
 
@@ -22,19 +23,17 @@ def train_model():
     text_encoder.eval()
 
     # 2. Setup GitHub Online Streaming Dataset
-    manifest_file = ""
-    if not os.path.exists(manifest_file):
-        print(f"Error: '{manifest_file}' not found. Please create your dataset manifest file first.")
-        return
+    # PASTE YOUR RAW GITHUB URL FOR dataset.json HERE:
+    manifest_file = "https://raw.githubusercontent.com/DasStudioINC/spider_diffusion-dataset/main/json/dataset.json"
 
     transform = transforms.Compose([
-        transforms.Resize((64, 64)), # Match your 64x64 U-Net architecture
+        transforms.Resize((64, 64)), # Matches 64x64 U-Net architecture
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)) # Map to [-1, 1]
     ])
 
     train_dataset = GitHubStreamDataset(manifest_path=manifest_file, transform=transform)
-    dataloader = DataLoader(train_dataset, batch_size=4)
+    dataloader = DataLoader(train_dataset, batch_size=2) # Batch size of 2 since you have 4 images
 
     timesteps = 1000
     betas, alphas, alphas_cumprod = get_diffusion_schedule(timesteps)
@@ -66,7 +65,7 @@ def train_model():
             x_zero = batch_images.to(device)
             current_batch_size = x_zero.shape[0]
 
-            # Encode the specific text prompts pulled live for this batch
+            # Encode the specific text prompts pulled live for this batch from GitHub
             with torch.no_grad():
                 text_inputs = tokenizer(list(batch_prompts), padding=True, return_tensors="pt").to(device)
                 batch_text_embeds = text_encoder(**text_inputs).pooler_output # Shape: [batch_size, 512]
