@@ -3,18 +3,7 @@
     "url": "https://raw.githubusercontent.com/DasStudioINC/spider_diffusion-dataset/main/images/spider/spe1.png",
     "prompt": "Close-up portrait of Spider-Man with glowing white eyes, a cyan glowing spider chest logo, and dramatic red and blue smoke aura on a dark black background."
   },
-  {
-    "url": "https://raw.githubusercontent.com/DasStudioINC/spider_diffusion-dataset/main/images/spider/spe2.png",
-    "prompt": "Spider-Man wearing a yellow jacket over a blue hoodie and black headphones, standing outdoors against a blue sky and New York cityscape background."
-  },
-  {
-    "url": "https://raw.githubusercontent.com/DasStudioINC/spider_diffusion-dataset/main/images/spider/spe3.png",
-    "prompt": "Full body action shot of Spider-Man in a dynamic crouching hero pose against a solid deep red background, holding a white web line."
-  },
-  {
-    "url": "https://raw.githubusercontent.com/DasStudioINC/spider_diffusion-dataset/main/images/spider/spe4.png",
-    "prompt": "Dynamic low-angle action shot of Spider-Man swinging mid-air, shooting a web forward with a bright light source and blue gradient sky background."
-  },
+ 
    {
     "url": "https://raw.githubusercontent.com/DasStudioINC/spider_diffusion-dataset/main/images/spider/photo-1635805737707-575885ab0820.png",
     "prompt": "Front facing Spider-man, with very dark background and the dark wrapping itself at an angle on Spider-mans mask on the left side."
