@@ -19,16 +19,5 @@
     "url": "https://raw.githubusercontent.com/DasStudioINC/spider_diffusion-dataset/main/images/spider/photo-1635805737707-575885ab0820.png",
     "prompt": "Front facing Spider-man, with very dark background and the dark wrapping itself at an angle on Spider-mans mask on the left side."
    },
-   {
-    "url": "https://raw.githubusercontent.com/DasStudioINC/spider_diffusion-dataset/main/images/dogs/dog.jpg",
-    "prompt": "Cute dog makes you happy verry happy"
-  },
-   {
-    "url": "https://raw.githubusercontent.com/DasStudioINC/spider_diffusion-dataset/main/images/dogs/dog2.png",
-    "prompt": "Dog loves to simply live"
-  },
-   {
-    "url": "https://raw.githubusercontent.com/DasStudioINC/spider_diffusion-dataset/main/images/dogs/dog3.png",
-    "prompt": "Small dog very adorable dog but will kill!"
-  }
+   
 ]
