@@ -68,6 +68,7 @@ def generate():
     output_image.save(output_path)
     output_image.save(output_filename)
     #push_changes(repo_path=models_dir, commit_message=f"New Image Created @{output_filename}")
+    print(f"Finished creating image located at {output_image}")
 
 if __name__ == "__main__":
     generate()

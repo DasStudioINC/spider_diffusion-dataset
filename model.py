@@ -8,7 +8,7 @@ model_name = "ALLI_AI.pth"
 
 
 # Training parameters
-train_timesteps = 50
+train_timesteps = 1000
 current_generation = 0
 genIncrease = 0
 
@@ -17,7 +17,7 @@ def IncreaseGen(r):
     genIncrease = r
 
 # Generation paraments
-gen_timesteps = 50
+gen_timesteps = 1000
 image_X_scale = 32
 image_Y_scale = 32
 image_shape = (3, image_X_scale, image_Y_scale)

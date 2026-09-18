@@ -32,8 +32,8 @@ def train_model():
 
     # Enforce strict 64x64 sizing and center cropping to avoid rounding boundary bugs
     transform = transforms.Compose([
-        transforms.Resize((64, 64)),
-        transforms.CenterCrop(64),
+        transforms.Resize((model_params.gen_X_scale, model_params.gen_Y_scale)),
+        transforms.CenterCrop(model_params.gen_X_scale),
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)) # Map to [-1, 1]
     ])
