@@ -8,6 +8,20 @@ import time
 import shutil
 from PIL import Image, ImageTk
 import glob
+import re
+
+import sys
+from pathlib import Path
+
+# Define the parent directory explicitly
+parent_dir = Path(__file__).resolve().parent.parent
+sys.path.append(str(parent_dir))
+
+# Debug checks
+print("Parent directory path:", parent_dir)
+print("Checking if model.py exists:", (parent_dir / "model.py").exists())
+
+import model as md
 
 class SpiderUI(tk.Tk):
     def __init__(self):
@@ -98,24 +112,67 @@ class SpiderUI(tk.Tk):
         bottom_wrapper.pack(fill=tk.X, padx=10, pady=10)
         self.suggestion_listbox = tk.Listbox(bottom_wrapper, bg="#222222", fg="#ffcc00", font=("Consolas", 9), height=4)
         self.suggestion_listbox.bind("<<ListboxSelect>>", self.apply_autocomplete)
+        
         bar_frame = tk.Frame(bottom_wrapper, bg="#1e1e1e", height=50)
         bar_frame.pack(fill=tk.X, pady=(2, 0))
         lbl = tk.Label(bar_frame, text="CMD>", bg="#1e1e1e", fg="#ff4444", font=("Consolas", 11, "bold"))
         lbl.pack(side=tk.LEFT, padx=5)
-        self.cmd_entry = tk.Entry(bar_frame, bg="#151515", fg="#ffffff", font=("Consolas", 11), insertbackground="white")
+        
+        self.cmd_entry = tk.Text(bar_frame, bg="#151515", fg="#ffffff", font=("Consolas", 11), insertbackground="white", height=1, bd=0, highlightthickness=0, wrap="none")
         self.cmd_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5, pady=8)
+        
+        self.cmd_entry.tag_config("yellow", foreground="#ffcc00")
+        self.cmd_entry.tag_config("flag", foreground="#666666")       
+        self.cmd_entry.tag_config("value", foreground="#aaaaaa")      
+        self.cmd_entry.tag_config("default", foreground="#ffffff")    
+
         self.cmd_entry.bind("<KeyRelease>", self.on_command_key_release)
         self.cmd_entry.bind("<Return>", self.execute_user_command)
-        
         self.cmd_entry.bind("<Up>", self.on_key_up)
         self.cmd_entry.bind("<Down>", self.on_key_down)
 
+    def highlight_syntax(self, event=None):
+        content = self.cmd_entry.get("1.0", "end-1c")
+        
+        for tag in ["yellow", "flag", "value", "default"]:
+            self.cmd_entry.tag_remove(tag, "1.0", "end")
+            
+        tokens = list(re.finditer(r'\S+', content))
+        next_is_value = False
+        
+        for i, match in enumerate(tokens):
+            word = match.group(0)
+            start_idx = f"1.{match.start()}"
+            end_idx = f"1.{match.end()}"
+            
+            if i == 0 or word.endswith(".py"):
+                self.cmd_entry.tag_add("yellow", start_idx, end_idx)
+                next_is_value = False
+            elif word.startswith("--"):
+                self.cmd_entry.tag_add("flag", start_idx, end_idx)
+                next_is_value = True
+            elif next_is_value:
+                self.cmd_entry.tag_add("value", start_idx, end_idx)
+                next_is_value = False
+            else:
+                self.cmd_entry.tag_add("default", start_idx, end_idx)
+                next_is_value = False
+
     def on_command_key_release(self, event):
-        typed_text = self.cmd_entry.get().strip()
+        self.highlight_syntax()
+        typed_text = self.cmd_entry.get("1.0", "end-1c").strip()
         if not typed_text:
             self.suggestion_listbox.pack_forget()
             return
-        matches = [cmd for cmd in self.commands_help.keys() if cmd.startswith(typed_text) or typed_text in cmd]
+        
+        base_typed = typed_text.split()[0] if typed_text else ""
+        
+        matches = []
+        for cmd in self.commands_help.keys():
+            base_cmd = cmd.split()[0]
+            if cmd.startswith(typed_text) or typed_text in cmd or base_cmd == base_typed:
+                matches.append(cmd)
+                
         if matches:
             self.suggestion_listbox.delete(0, tk.END)
             for m in matches:
@@ -129,33 +186,36 @@ class SpiderUI(tk.Tk):
         if selection:
             selected_text = self.suggestion_listbox.get(selection[0])
             base_cmd = selected_text.split("  -->  ")[0]
-            self.cmd_entry.delete(0, tk.END)
-            self.cmd_entry.insert(0, base_cmd + " ")
+            self.cmd_entry.delete("1.0", "end")
+            self.cmd_entry.insert("1.0", base_cmd + " ")
+            self.highlight_syntax()
             self.suggestion_listbox.pack_forget()
             self.cmd_entry.focus()
 
     def on_key_up(self, event):
         if not self.command_history:
-            return
+            return "break"
         if self.history_index > 0:
             self.history_index -= 1
         elif self.history_index == -1:
             self.history_index = len(self.command_history) - 1
         
-        self.cmd_entry.delete(0, tk.END)
-        self.cmd_entry.insert(0, self.command_history[self.history_index])
+        self.cmd_entry.delete("1.0", "end")
+        self.cmd_entry.insert("1.0", self.command_history[self.history_index])
+        self.highlight_syntax()
         return "break"
 
     def on_key_down(self, event):
         if not self.command_history:
-            return
+            return "break"
         if self.history_index < len(self.command_history) - 1:
             self.history_index += 1
-            self.cmd_entry.delete(0, tk.END)
-            self.cmd_entry.insert(0, self.command_history[self.history_index])
+            self.cmd_entry.delete("1.0", "end")
+            self.cmd_entry.insert("1.0", self.command_history[self.history_index])
         else:
             self.history_index = len(self.command_history)
-            self.cmd_entry.delete(0, tk.END)
+            self.cmd_entry.delete("1.0", "end")
+        self.highlight_syntax()
         return "break"
 
     def log_input_command(self, raw_command):
@@ -217,10 +277,10 @@ class SpiderUI(tk.Tk):
         self.terminal_box.config(state=tk.DISABLED)
 
     def execute_user_command(self, event):
-        raw_command = self.cmd_entry.get().strip()
-        if not raw_command: return
+        raw_command = self.cmd_entry.get("1.0", "end-1c").strip()
+        if not raw_command: return "break"
         self.suggestion_listbox.pack_forget()
-        self.cmd_entry.delete(0, tk.END)
+        self.cmd_entry.delete("1.0", "end")
 
         self.command_history.append(raw_command)
         self.history_index = len(self.command_history)
@@ -230,14 +290,14 @@ class SpiderUI(tk.Tk):
             self.terminal_box.config(state=tk.NORMAL)
             self.terminal_box.delete("1.0", tk.END)
             self.terminal_box.config(state=tk.DISABLED)
-            return
+            return "break"
         
         if raw_command == "help":
             self.log_input_command(raw_command)
             self.log_to_terminal("Available Commands:")
             for cmd, desc in self.commands_help.items():
                 self.log_to_terminal(f"  {cmd} : {desc}")
-            return
+            return "break"
 
         # --- MANUAL CACHE CLEANUP COMMAND ---
         if raw_command == "clean_cache":
@@ -251,7 +311,7 @@ class SpiderUI(tk.Tk):
                     self.log_to_terminal(f"Error deleting cache directory: {e}", is_error=True)
             else:
                 self.log_to_terminal("Cache directory './cache_images' does not exist or is already clear.")
-            return
+            return "break"
         # ------------------------------------
 
         # --- SECURITY CHECK & PASSWORD STRIPPING ---
@@ -262,18 +322,22 @@ class SpiderUI(tk.Tk):
             expected_pass = os.environ.get("SPIDER_PASS")
             if not expected_pass:
                 self.log_to_terminal("Access Denied: SPIDER_PASS environment variable is not configured.", is_error=True)
-                return
+                return "break"
                 
             required_arg = f"--pass {expected_pass}"
             if required_arg not in raw_command:
                 self.log_to_terminal("Access Denied: Missing or incorrect password argument in command.", is_error=True)
-                return
+                return "break"
             
-            # Strip out the password argument so train_diffusion.py's argparse doesn't reject it
             clean_command = raw_command.replace(required_arg, "").strip()
         # ---------------------------------------------
 
-        if clean_command.endswith(".py") or clean_command.startswith("train_diffusion") or clean_command.startswith("generate_image"):
+        # FIXED: Evaluate the first word of clean_command instead of the whole string's end
+        first_word = clean_command.split()[0] if clean_command else ""
+
+        if first_word.endswith(".py") or clean_command.startswith(f"train_{md.model_name}") or clean_command.startswith("generate_image"):
+            if(raw_command.startswith("train") and raw_command.split(" ")[1] == "--epochs"):
+                md.IncreaseGen(int(raw_command.split(" ")[2]))
             command = f"python {clean_command}"
         else:
             command = clean_command
@@ -294,6 +358,7 @@ class SpiderUI(tk.Tk):
         
         self.process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, env=env)
         threading.Thread(target=self.enqueue_output, args=(self.process.stdout, self.output_queue), daemon=True).start()
+        return "break"
 
     def enqueue_output(self, out, queue):
         for line in iter(out.readline, ''):
@@ -323,7 +388,7 @@ class SpiderUI(tk.Tk):
             self.lbl_time.config(text=f"Time: {mins:02d}:{secs:02d}")
         else:
             self.lbl_time.config(text="Time: 00:00")
-        ckpt_path = "diffusion_checkpoint.pth"
+        ckpt_path = md.model_name
         if os.path.exists(ckpt_path):
             size_mb = os.path.getsize(ckpt_path) / (1024 * 1024)
             self.lbl_model_size.config(text=f"Model Size: {size_mb:.1f} MB")

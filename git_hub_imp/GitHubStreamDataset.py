@@ -4,6 +4,7 @@ import requests
 from PIL import Image
 import torch
 from torch.utils.data import IterableDataset
+from git import Repo, GitCommandError
 
 class GitHubStreamDataset(IterableDataset):
     def __init__(self, manifest_path, transform, cache_dir="./cache_images"):
@@ -55,3 +56,25 @@ class GitHubStreamDataset(IterableDataset):
             except Exception as e:
                 print(f"Error processing image {cache_path}: {e}")
                 continue
+
+
+def push_changes(repo_path="./", commit_message="Auto-sync model and outputs"):
+    try:
+        repo = Repo(repo_path)
+        
+        if not repo.is_dirty(untracked_files=True):
+            print("No local changes to sync.")
+            return
+
+        # Stage everything (checkpoints, images, code changes)
+        repo.git.add(A=True)
+        repo.index.commit(commit_message)
+        
+        origin = repo.remote(name='origin')
+        active_branch = repo.active_branch.name
+        origin.push(active_branch)
+        
+        print(f"Successfully pushed updates to GitHub ({active_branch})!")
+
+    except GitCommandError as e:
+        print(f"Git sync failed: {e}")

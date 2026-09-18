@@ -7,12 +7,16 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from transformers import CLIPTokenizer, CLIPTextModel
 from diffusion_core import SimpleConditionalUNet, get_diffusion_schedule
-from git_hub_imp.GitHubStreamDataset import GitHubStreamDataset
+from git_hub_imp.GitHubStreamDataset import GitHubStreamDataset, push_changes
+
+import model as model_params
 
 def train_model():
     parser = argparse.ArgumentParser(description="Train text-conditioned diffusion model via GitHub streaming dataset.")
     parser.add_argument("--epochs", type=int, default=100, help="Number of training epochs.")
-    args = parser.parse_args()
+    
+    # FIXED: Use parse_known_args() so UI frameworks or extra system flags don't crash argparse
+    args, unknown = parser.parse_known_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using training device: {device}")
@@ -37,15 +41,19 @@ def train_model():
     train_dataset = GitHubStreamDataset(manifest_path=manifest_file, transform=transform)
     dataloader = DataLoader(train_dataset, batch_size=2)
 
-    timesteps = 1000
+    timesteps = model_params.train_timesteps
     betas, alphas, alphas_cumprod = get_diffusion_schedule(timesteps)
     alphas_cumprod = alphas_cumprod.to(device)
 
     # Upgraded base_dims to 64 for improved feature capacity
-    model = SimpleConditionalUNet(in_channels=3, base_dims=64, time_dim=128).to(device)
+    model = SimpleConditionalUNet(
+        in_channels=model_params.in_channels, 
+        base_dims=model_params.gen_X_scale, 
+        time_dim=model_params.gen_Y_scale
+    ).to(device)
 
     # --- CHECKPOINT RESUMING LOGIC ---
-    checkpoint_path = "diffusion_checkpoint.pth"
+    checkpoint_path = model_params.model_name
     if os.path.exists(checkpoint_path):
         print(f"Resuming training from existing checkpoint: {checkpoint_path}")
         model.load_state_dict(torch.load(checkpoint_path, map_location=device))
@@ -92,8 +100,19 @@ def train_model():
         print(f"Epoch [{epoch+1}/{epochs}] | Loss: {avg_loss:.6f}")
 
     # Save final model checkpoint
-    torch.save(model.state_dict(), checkpoint_path)
     print(f"\nTraining complete! Final checkpoint saved to '{checkpoint_path}'.")
+    
+    torch.save(model.state_dict(), checkpoint_path)
+    model_params.training_Gen_Count()
+    model_params.current_Generation()
+    md_folder = "./model_storage/models"
+    os.makedirs(md_folder, exist_ok=True)
+    
+    dynamic_checkpoint_name = f"{checkpoint_path}#{model_params.training_Gen_Count()}#Epochs{model_params.current_Generation()}"
+    output_path = os.path.join(md_folder, dynamic_checkpoint_name)
+    
+    #torch.save(model.state_dict(), output_path)
+    #push_changes(repo_path=md_folder, commit_message=f"New Trained Model @{dynamic_checkpoint_name}")
 
     # --- AUTO-CLEANUP CACHED IMAGES ---
     cache_dir = "./cache_images"
