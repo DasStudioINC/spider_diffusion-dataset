@@ -399,7 +399,7 @@ class SpiderUI(tk.Tk):
 
     def check_for_preview_images(self):
         base_cache_dir = "./cache_images"
-        expected_files = [f"spe{i}.png" for i in range(1, 5)]
+        expected_files = [f"gen_{i}.png" for i in range(1, 5)]
         self.cached_images_list = [os.path.join(base_cache_dir, f) for f in expected_files if os.path.exists(os.path.join(base_cache_dir, f))]
 
         if self.last_command_type == "train" and self.cached_images_list:
